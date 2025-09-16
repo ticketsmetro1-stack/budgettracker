@@ -150,7 +150,7 @@
               <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
               <button class="action-btn" onclick="openDeleteModal('${goal.id}')">🗑️</button>
               <button class="action-btn" onclick="toggleSummary('${goal.id}')">ℹ️</button>
-              <button class="action-btn add-btn" onclick="addAmountPrompt('${goal.id}')">➕</button>
+              <button class="action-btn add-btn" onclick="addAmountPrompt('${goal.id}')">💸</button>
             </div>
             <div id="summary-${goal.id}" class="goal-summary">
               ${(goal.transactions || []).map(t => `<div>${t.date} - ${t.category}: EGP ${t.amount}</div>`).join('') || 'No transactions'}
