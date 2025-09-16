@@ -208,17 +208,22 @@
       document.getElementById('addGoalBtn').textContent="Update Goal";
     }
 
-    function addAmountPrompt(id){
-      const goal = goals.find(g => g.id === id);
-      const value = parseFloat(prompt(`Add amount to "${goal.name}"`, 0));
-      if(!isNaN(value) && value > 0){
-        goal.amount = (goal.amount || 0) + value;
-        goal.transactions = goal.transactions || [];
-        goal.transactions.push({date: new Date().toLocaleDateString(), category: 'Added', amount: value});
-        localStorage.setItem('pwa-goals', JSON.stringify(goals));
-        renderGoals();
-      }
-    }
+   function addAmountPrompt(id){
+  const goal = goals.find(g => g.id === id);
+  const amount = parseFloat(prompt(`Enter amount to add to "${goal.name}"`, 0));
+  if(isNaN(amount) || amount <= 0) return;
+
+  const category = prompt("Enter spending category or note:", "Added");
+  goal.amount = (goal.amount || 0) + amount;
+  goal.transactions = goal.transactions || [];
+  goal.transactions.push({
+    date: new Date().toLocaleDateString(),
+    category: category || "Added",
+    amount: amount
+  });
+  localStorage.setItem('pwa-goals', JSON.stringify(goals));
+  renderGoals();
+}
 
     function openDeleteModal(id){
       deletingGoal=id;
