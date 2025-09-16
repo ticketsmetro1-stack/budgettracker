@@ -37,8 +37,7 @@
     .progress > div{height:100%;transition:width .25s;background:var(--accent)}
     .progress-text{font-size:12px;color:var(--muted);margin-top:4px;text-align:right}
     .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-    .action-btn{padding:6px 8px;border-radius:8px;border:none;background:#f3f4f6;cursor:pointer;position:relative}
-    .action-btn.add-btn{background:var(--accent);color:#fff;font-weight:700}
+    .action-btn{padding:6px 8px;border-radius:8px;border:none;background:#f3f4f6;cursor:pointer;position:relative;font-size:16px}
     .goal-summary{display:none;padding:8px;margin-top:8px;border-radius:8px;background:rgba(0,0,0,0.02);font-size:13px}
     footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,23,0.45);z-index:60}
@@ -150,10 +149,10 @@
               <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
               <button class="action-btn" onclick="openDeleteModal('${goal.id}')">🗑️</button>
               <button class="action-btn" onclick="toggleSummary('${goal.id}')">ℹ️</button>
-              <button class="action-btn add-btn" onclick="addAmountPrompt('${goal.id}')">💸</button>
+              <button class="action-btn" onclick="addAmountPrompt('${goal.id}')">💸</button>
             </div>
             <div id="summary-${goal.id}" class="goal-summary">
-              ${(goal.transactions || []).map(t => `<div>${t.date} - ${t.category}: EGP ${t.amount}</div>`).join('') || 'No transactions'}
+              ${(goal.transactions || []).slice(-3).map(t => `<div>${t.date} - ${t.category}: EGP ${t.amount}</div>`).join('') || 'No transactions'}
             </div>
           `;
           grid.appendChild(card);
@@ -208,22 +207,22 @@
       document.getElementById('addGoalBtn').textContent="Update Goal";
     }
 
-   function addAmountPrompt(id){
-  const goal = goals.find(g => g.id === id);
-  const amount = parseFloat(prompt(`Enter amount to add to "${goal.name}"`, 0));
-  if(isNaN(amount) || amount <= 0) return;
+    function addAmountPrompt(id){
+      const goal = goals.find(g => g.id === id);
+      const amount = parseFloat(prompt(`Enter amount to add to "${goal.name}"`, 0));
+      if(isNaN(amount) || amount <= 0) return;
 
-  const category = prompt("Enter spending category or note:", "Added");
-  goal.amount = (goal.amount || 0) + amount;
-  goal.transactions = goal.transactions || [];
-  goal.transactions.push({
-    date: new Date().toLocaleDateString(),
-    category: category || "Added",
-    amount: amount
-  });
-  localStorage.setItem('pwa-goals', JSON.stringify(goals));
-  renderGoals();
-}
+      const category = prompt("Enter spending category or note:", "Added");
+      goal.amount = (goal.amount || 0) + amount;
+      goal.transactions = goal.transactions || [];
+      goal.transactions.push({
+        date: new Date().toLocaleDateString(),
+        category: category || "Added",
+        amount: amount
+      });
+      localStorage.setItem('pwa-goals', JSON.stringify(goals));
+      renderGoals();
+    }
 
     function openDeleteModal(id){
       deletingGoal=id;
