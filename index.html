@@ -84,6 +84,13 @@ footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
 </div>
 
 <script>
+  if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('Service Worker registered', reg))
+      .catch(err => console.error('Service Worker failed', err));
+  });
+}
 let goals = JSON.parse(localStorage.getItem('pwa-goals')||'[]');
 let editingGoal = null;
 let deletingGoal = null;
