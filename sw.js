@@ -1,32 +1,37 @@
-const CACHE_NAME = 'budget-pwa-cache-v1';
-const urlsToCache = [
+const CACHE_NAME = 'budget-pwa-v1';
+const FILES_TO_CACHE = [
   '/',
-  '/index.html', // or the path to your HTML
-  '/sw.js',      // the service worker itself
+  '/index.html',
+  '/sw.js',
+  // add any other files like images, CSS if separate
 ];
 
-// Install event – cache files
+// Install SW and cache files
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(FILES_TO_CACHE);
+    })
   );
+  self.skipWaiting();
 });
 
-// Activate event – cleanup old caches
+// Activate SW
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-    ))
+    caches.keys().then(keys => {
+      return Promise.all(keys.map(key => {
+        if(key !== CACHE_NAME) return caches.delete(key);
+      }));
+    })
   );
+  self.clients.claim();
 });
 
-// Fetch event – serve from cache if offline
+// Fetch requests: serve cached first
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then(response => response || fetch(event.request))
+      .then(resp => resp || fetch(event.request))
   );
 });
