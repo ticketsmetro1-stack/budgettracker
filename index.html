@@ -98,10 +98,8 @@ function saveGoal(){
   const due=document.getElementById('dueValue').value;
   const color=document.getElementById('goalColor').value;
   const group=document.getElementById('goalGroup').value.trim()||'My Goals';
-
   if(editingGoal){
-    const goal=goals.find(g=>g.id===editingGoal);
-    if(!goal) return;
+    const goal=goals.find(g=>g.id===editingGoal); if(!goal) return;
     Object.assign(goal,{name,amount,target,due,color,group});
     editingGoal=null;
     document.getElementById('addGoalBtn').textContent="Add Goal";
@@ -170,4 +168,54 @@ function toggleSummary(id){ const el=document.getElementById('summary-'+id); if(
 function toggleTheme(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'light':'dark';}
 function exportJSON(){ const blob=new Blob([JSON.stringify(goals)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='goals.json'; a.click(); }
 function importJSON(){ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=e=>{ const f=e.target.files[0]; const r=new FileReader(); r.onload=()=>{ goals=JSON.parse(r.result); localStorage.setItem('pwa-goals',JSON.stringify(goals)); renderGoals(); }; r.readAsText(f); }; inp.click(); }
-function exportCSV(){ const
+function exportCSV(){ const rows=[["Name","Amount","Target","Due","Group"]]; goals.forEach(g=>rows.push([g.name,g.amount,g.target,g.due,g.group||'My Goals'])); const csv=rows.map(r=>r.join(",")).join("\n"); const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='goals.csv';a.click(); }
+
+function renderGoals(){
+  renderGroupsDropdown();
+  const groupsDiv=document.getElementById('groups');
+  groupsDiv.innerHTML='';
+  const groupsMap={};
+  goals.forEach(goal=>{
+    const group=goal.group||'My Goals';
+    if(!groupsMap[group]) groupsMap[group]=[];
+    groupsMap[group].push(goal);
+  });
+  Object.keys(groupsMap).forEach(groupName=>{
+    const g=document.createElement('div'); g.className='group';
+    g.innerHTML=`<div class="group-header"><span class="group-title">${groupName}</span></div>`;
+    const grid=document.createElement('div'); grid.className='goals-grid';
+    groupsMap[groupName].forEach(goal=>{
+      const pct=goal.target?Math.min((goal.amount/goal.target)*100,100):0;
+      const card=document.createElement('div'); card.className='card';
+      card.innerHTML=`
+        <div class="top">
+          <div class="badge" style="background:${goal.color||'#2563eb'}">${goal.name[0]}</div>
+          <div class="meta">
+            <div class="name">${goal.name}</div>
+            <div class="note">Due: ${goal.due||''}</div>
+          </div>
+        </div>
+        <div class="amount">EGP ${goal.amount||0} / ${goal.target||0}</div>
+        <div class="remaining">Remaining: EGP ${(goal.target-(goal.amount||0))}</div>
+        <div class="progress"><div style="width:${pct}%;"></div></div>
+        <div class="progress-text">${pct.toFixed(0)}%</div>
+        <div class="actions">
+          <button class="action-btn" onclick="addAmountPrompt('${goal.id}')">➕</button>
+          <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
+          <button class="action-btn" onclick="openDeleteModal('${goal.id}')">🗑️</button>
+          <button class="action-btn" onclick="toggleSummary('${goal.id}')">ℹ️</button>
+        </div>
+        <div id="summary-${goal.id}" class="goal-summary">
+          ${(goal.transactions||[]).map(t=>`<div>${t.date} - ${t.category}: EGP ${t.amount}</div>`).join('')||'No transactions'}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+    g.appendChild(grid); groupsDiv.appendChild(g);
+  });
+}
+
+renderGoals();
+</script>
+</body>
+</html>
