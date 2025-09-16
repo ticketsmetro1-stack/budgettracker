@@ -1,253 +1,268 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Budget PWA — 2-column Goals</title>
-
-  <!-- iOS home screen meta -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Budget PWA">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-  <!-- Styling for a cleaner, professional look with dark mode and progress bars -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget PWA</title>
   <style>
-    :root{
-      --bg:#f4f6f8; --card:#ffffff; --muted:#6b7280; --accent:#2563eb; --radius:16px;
-      --gap:16px; --text:#111827;
-      font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;
+    :root {
+      --bg:#f4f6f8;--card:#fff;--muted:#6b7280;--accent:#2563eb;--radius:14px;--gap:14px;--text:#111827;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial
     }
-    [data-theme="dark"]{
-      --bg:#0f172a; --card:#1e293b; --muted:#94a3b8; --accent:#3b82f6; --text:#f1f5f9;
-    }
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);transition:background .3s,color .3s}
-    .app{max-width:900px;margin:24px auto;padding:16px;}
-    header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-    h1{font-size:22px;font-weight:700;margin:0;color:var(--text)}
-    .controls{margin-left:auto;display:flex;gap:10px}
-    button{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:12px;font-size:14px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);transition:all .2s}
-    button:hover{opacity:.9;}
-
-    /* 2-column grid */
-    .grid{display:grid;grid-template-columns:1fr 200px;gap:var(--gap);}
-    .goal{display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:var(--radius);background:var(--card);box-shadow:0 6px 20px rgba(0,0,0,0.05);transition:transform .2s;flex-wrap:wrap}
-    .goal:hover{transform:translateY(-2px)}
-    .left{display:flex;gap:12px;align-items:center;flex:1;min-width:160px}
-    .badge{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,0.15)}
-    .meta{display:flex;flex-direction:column}
-    .name{font-weight:600;font-size:15px}
+    [data-theme="dark"] {--bg:#0b1220;--card:#0f1724;--muted:#9aa8bf;--accent:#3b82f6;--text:#e6eef8}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    .app{max-width:980px;margin:18px auto;padding:16px}
+    header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    h1{font-size:20px;margin:0}
+    .controls{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+    .btn{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn.secondary{background:#fff;color:var(--accent);border:1px solid #e6eefc}
+    .inline-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .inline-form input,.inline-form select{padding:6px 8px;border-radius:8px;border:1px solid #ccc}
+    .inline-form input[type="color"]{padding:0;border:none;width:42px;height:38px}
+    .group{margin-top:18px}
+    .group-header{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+    .group-title{font-weight:700}
+    .goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    @media(min-width:560px){ .goals-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))} }
+    .card{display:flex;flex-direction:column;justify-content:space-between;padding:12px;border-radius:12px;background:var(--card);box-shadow:0 6px 18px rgba(11,12,30,0.04);position:relative}
+    .card .top{display:flex;gap:10px;align-items:center}
+    .badge{width:44px;height:44px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .meta{flex:1}
+    .name{font-weight:700}
     .note{font-size:12px;color:var(--muted)}
-    .right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:140px}
-    .amount{font-weight:700;font-size:16px;color:var(--text)}
-    .progress{width:100%;height:6px;background:#e5e7eb;border-radius:8px;overflow:hidden;margin-top:4px}
-    .progress>div{height:100%;background:var(--accent);transition:width .3s}
-    [data-theme="dark"] .progress{background:#334155}
-    .actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-    .add{padding:6px 10px;border-radius:8px;background:#f3f4f6;color:#111827;border:none;cursor:pointer;transition:background .2s}
-    .add:hover{background:#e5e7eb}
-    [data-theme="dark"] .add{background:#334155;color:#f1f5f9}
-    [data-theme="dark"] .add:hover{background:#475569}
-
-    /* Add goal form */
-    .form{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
-    input[type=text],input[type=number]{padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;font-size:14px;flex:1;background:var(--card);color:var(--text)}
-    input[type=color]{width:42px;height:42px;border:none;border-radius:8px;padding:0;cursor:pointer}
-
-    @media (max-width:600px){
-      .grid{grid-template-columns:1fr;}
-      .right{align-items:flex-start;width:100%}
-    }
-
+    .amount{font-weight:800;margin-top:8px}
+    .remaining{font-size:13px;color:var(--muted)}
+    .progress{height:8px;background:#eef3ff;border-radius:8px;overflow:hidden;margin-top:8px}
+    .progress > div{height:100%;transition:width .25s;background:var(--accent)}
+    .progress-text{font-size:12px;color:var(--muted);margin-top:4px;text-align:right}
+    .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+    .action-btn{padding:6px 8px;border-radius:8px;border:none;background:#f3f4f6;cursor:pointer;position:relative}
+    .action-btn.add-btn{background:var(--accent);color:#fff;font-weight:700}
+    .goal-summary{display:none;padding:8px;margin-top:8px;border-radius:8px;background:rgba(0,0,0,0.02);font-size:13px}
     footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
-
-    /* modal */
-    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px)}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,23,0.45);z-index:60}
     .modal.show{display:flex}
-    .sheet{background:var(--card);padding:20px;border-radius:var(--radius);min-width:280px;box-shadow:0 10px 30px rgba(0,0,0,0.15)}
+    .sheet{background:var(--card);padding:14px;border-radius:12px;min-width:300px;max-width:520px}
   </style>
 </head>
 <body>
-  <div class="app" id="app">
+  <div class="app">
     <header>
-      <h1>Budget Goals</h1>
+      <h1>💰 Budget — Goals</h1>
       <div class="controls">
-        <button id="themeBtn">🌙</button>
-        <button id="importBtn">Import</button>
-        <button id="exportBtn">Export</button>
-        <button id="resetBtn">Reset</button>
+        <button class="btn secondary" onclick="toggleTheme()">🌓</button>
+        <button class="btn" onclick="exportJSON()">Export JSON</button>
+        <button class="btn" onclick="importJSON()">Import</button>
+        <button class="btn" onclick="exportCSV()">Export CSV</button>
       </div>
     </header>
 
-    <section>
-      <div class="form">
-        <input id="newName" placeholder="Goal name (e.g. Vacation)" type="text">
-        <input id="newStart" placeholder="Starting amount" type="number" value="0">
-        <input id="newTarget" placeholder="Target amount (optional)" type="number">
-        <input id="newColor" type="color" value="#10b981" title="Pick color">
-        <button id="addGoal">Add Goal</button>
-      </div>
+    <div class="inline-form">
+      <input id="goalName" placeholder="Goal Name" />
+      <input id="goalAmount" type="number" placeholder="Amount (EGP)" />
+      <input id="goalTarget" type="number" placeholder="Target (optional)" />
+      <input id="dueValue" type="date" />
+      <input list="groupList" id="goalGroup" placeholder="Group (default: My Goals)" />
+      <datalist id="groupList"></datalist>
+      <input id="goalColor" type="color" value="#22c55e" />
+      <button class="btn" onclick="saveGoal()" id="addGoalBtn">Add Goal</button>
+    </div>
 
-      <div id="grid" class="grid" aria-live="polite"></div>
-    </section>
-
-    <footer>
-      Double tap back of iPhone → Shortcut → Opens this app for quick adds. Works offline after first load.
-    </footer>
+    <div id="groups"></div>
+    <footer>Budget PWA — Offline Ready</footer>
   </div>
 
-  <!-- modal for adding amount -->
-  <div id="modal" class="modal" role="dialog" aria-hidden="true">
-    <div class="sheet" role="document">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <strong id="modalTitle">Add amount</strong>
-        <button id="closeModal">✕</button>
-      </div>
-      <label class="note">Amount</label>
-      <input id="amtInput" type="number" placeholder="e.g. 50" style="width:100%;padding:10px;margin-bottom:10px;border-radius:10px;border:1px solid #d1d5db">
-      <label class="note">Action</label>
-      <select id="amtType" style="width:100%;padding:10px;margin-bottom:14px;border-radius:10px;border:1px solid #d1d5db">
-        <option value="add">Add</option>
-        <option value="subtract">Subtract</option>
-      </select>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button id="confirmAmt">Confirm</button>
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="sheet">
+      <p>Are you sure you want to delete this goal?</p>
+      <div style="text-align:right;margin-top:8px;">
+        <button class="btn secondary" onclick="closeModal('deleteModal')">Cancel</button>
+        <button class="btn" id="confirmDeleteBtn">Delete</button>
       </div>
     </div>
   </div>
 
   <script>
-    const STORAGE_KEY = 'budget_goals_v1';
-    function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-    let goals = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || [
-      {id:uid(),name:'Savings',color:'#10b981',amount:400, target:1000, note:'Long-term'},
-      {id:uid(),name:'Vacation',color:'#f59e0b',amount:120, target:600, note:'Trip fund'},
-      {id:uid(),name:'Debt',color:'#ef4444',amount:230, target:500, note:'Credit card'}
-    ];
+    let goals = JSON.parse(localStorage.getItem('pwa-goals')||'[]');
+    let editingGoal = null;
+    let deletingGoal = null;
 
-    const grid = document.getElementById('grid');
-    const newName = document.getElementById('newName');
-    const newStart = document.getElementById('newStart');
-    const newTarget = document.getElementById('newTarget');
-    const newColor = document.getElementById('newColor');
-    const addGoalBtn = document.getElementById('addGoal');
-    const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modalTitle');
-    const amtInput = document.getElementById('amtInput');
-    const amtType = document.getElementById('amtType');
-    const confirmAmt = document.getElementById('confirmAmt');
-    const closeModal = document.getElementById('closeModal');
-    const themeBtn = document.getElementById('themeBtn');
-    let currentTargetGoal = null;
+    function getGroups(){
+      const uniqueGroups=[...new Set(goals.map(g=>g.group||'My Goals'))];
+      return uniqueGroups.length?uniqueGroups:["My Goals"];
+    }
 
-    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(goals)); }
-    function render(){
-      grid.innerHTML = '';
-      goals.forEach(g=>{
-        const el = document.createElement('div'); el.className='goal';
-        const progress = g.target ? Math.min(100, Math.round((g.amount/g.target)*100)) : null;
-        el.innerHTML = `
-          <div class="left">
-            <div class="badge" style="background:${g.color}">${g.name.slice(0,1).toUpperCase()}</div>
-            <div class="meta">
-              <div class="name">${escapeHtml(g.name)}</div>
-              <div class="note">${escapeHtml(g.note || '')}</div>
-            </div>
-          </div>
-          <div class="right">
-            <div class="amount">${formatCurrency(g.amount)}${g.target?` / ${formatCurrency(g.target)}`:''}</div>
-            ${progress!==null?`<div class="progress"><div style="width:${progress}%;background:${g.color}"></div></div>`:''}
-            <div class="actions">
-              <button class="add" data-id="${g.id}" aria-label="Add to ${g.name}">➕</button>
-              <button class="add" data-edit="${g.id}" aria-label="Edit ${g.name}">✎</button>
-              <button class="add" data-del="${g.id}" aria-label="Delete ${g.name}">🗑️</button>
-            </div>
-          </div>
-        `;
-        grid.appendChild(el);
+    function renderGroupsDropdown(){
+      const list=document.getElementById('groupList');
+      list.innerHTML='';
+      getGroups().forEach(gr=>{
+        const option=document.createElement('option');
+        option.value=gr;
+        list.appendChild(option);
       });
-      document.querySelectorAll('button[data-id]').forEach(b=> b.onclick = ()=> openModalFor(b.dataset.id));
-      document.querySelectorAll('button[data-edit]').forEach(b=> b.onclick = ()=> editGoal(b.dataset.edit));
-      document.querySelectorAll('button[data-del]').forEach(b=> b.onclick = ()=> deleteGoal(b.dataset.del));
     }
 
-    function openModalFor(id){
-      currentTargetGoal = goals.find(x=>x.id===id);
-      modalTitle.textContent = `Add amount — ${currentTargetGoal.name}`;
-      amtInput.value = '';
-      amtType.value = 'add';
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden','false');
-    }
-    function closeModalFn(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
-    closeModal.onclick = closeModalFn;
-    modal.onclick = e=>{ if(e.target===modal) closeModalFn(); }
+    function renderGoals(){
+      const groupsDiv = document.getElementById('groups');
+      groupsDiv.innerHTML = '';
 
-    confirmAmt.onclick = ()=>{
-      const val = parseFloat(amtInput.value || '0');
-      if(isNaN(val)){ alert('Enter a number'); return; }
-      if(!currentTargetGoal){ alert('No goal selected'); return; }
-      if(amtType.value==='add') currentTargetGoal.amount += val; else currentTargetGoal.amount -= val;
-      save(); render(); closeModalFn();
-      toast(`Updated ${currentTargetGoal.name}: ${formatCurrency(currentTargetGoal.amount)}`)
+      if(goals.length === 0){
+        groupsDiv.innerHTML = '<p style="text-align:center;color:var(--muted)">No goals yet. Add one above!</p>';
+        renderGroupsDropdown();
+        return;
+      }
+
+      const groupsMap = {};
+      goals.forEach(goal => {
+        const group = goal.group || 'My Goals';
+        if(!groupsMap[group]) groupsMap[group] = [];
+        groupsMap[group].push(goal);
+      });
+
+      Object.keys(groupsMap).forEach(groupName => {
+        const g = document.createElement('div');
+        g.className = 'group';
+        g.innerHTML = `<div class="group-header"><span class="group-title">${groupName}</span></div>`;
+
+        const grid = document.createElement('div');
+        grid.className = 'goals-grid';
+
+        groupsMap[groupName].forEach(goal => {
+          const pct = goal.target ? Math.min((goal.amount || 0) / goal.target * 100, 100) : 0;
+
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="top">
+              <div class="badge" style="background:${goal.color || '#2563eb'}">${goal.name[0]}</div>
+              <div class="meta">
+                <div class="name">${goal.name}</div>
+                <div class="note">Due: ${goal.due || ''}</div>
+              </div>
+            </div>
+            <div class="amount">EGP ${goal.amount || 0} / ${goal.target || 0}</div>
+            <div class="remaining">Remaining: EGP ${(goal.target - (goal.amount || 0))}</div>
+            <div class="progress"><div style="width:${pct}%"></div></div>
+            <div class="progress-text">${pct.toFixed(1)}% completed</div>
+            <div class="actions">
+              <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
+              <button class="action-btn" onclick="openDeleteModal('${goal.id}')">🗑️</button>
+              <button class="action-btn" onclick="toggleSummary('${goal.id}')">ℹ️</button>
+              <button class="action-btn add-btn" onclick="addAmountPrompt('${goal.id}')">➕</button>
+            </div>
+            <div id="summary-${goal.id}" class="goal-summary">
+              ${(goal.transactions || []).map(t => `<div>${t.date} - ${t.category}: EGP ${t.amount}</div>`).join('') || 'No transactions'}
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+        g.appendChild(grid);
+        groupsDiv.appendChild(g);
+      });
+
+      renderGroupsDropdown();
+    }
+
+    function toggleSummary(id){
+      const el = document.getElementById('summary-'+id);
+      if(!el) return;
+      el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function saveGoal(){
+      const name=document.getElementById('goalName').value.trim();
+      if(!name){ alert("Please enter a goal name"); return; }
+
+      const amount=parseFloat(document.getElementById('goalAmount').value)||0;
+      const target=parseFloat(document.getElementById('goalTarget').value)||0;
+      const due=document.getElementById('dueValue').value;
+      const color=document.getElementById('goalColor').value;
+      const group=(document.getElementById('goalGroup').value.trim()||'My Goals');
+
+      if(editingGoal){
+        let goal=goals.find(g=>g.id===editingGoal);
+        goal.name=name; goal.amount=amount; goal.target=target; goal.due=due; goal.color=color; goal.group=group;
+        editingGoal=null;
+        document.getElementById('addGoalBtn').textContent="Add Goal";
+      } else {
+        goals.push({id:Date.now().toString(), name, amount, target, due, color, group, transactions:[]});
+      }
+
+      localStorage.setItem('pwa-goals',JSON.stringify(goals));
+      renderGoals();
+      clearForm();
     }
 
     function editGoal(id){
-      const g = goals.find(x=>x.id===id);
-      const name = prompt('Goal name',g.name);
-      if(!name) return;
-      const note = prompt('Note (optional)',g.note||'');
-      const color = prompt('Hex color (e.g. #10b981)',g.color) || g.color;
-      const targetStr = prompt('Target amount (optional)', g.target || '');
-      const target = targetStr?parseFloat(targetStr):null;
-      g.name = name; g.note = note; g.color = color; g.target = target;
-      save(); render();
+      editingGoal=id;
+      const goal=goals.find(g=>g.id===id);
+      document.getElementById('goalName').value=goal.name;
+      document.getElementById('goalAmount').value=goal.amount;
+      document.getElementById('goalTarget').value=goal.target;
+      document.getElementById('dueValue').value=goal.due||'';
+      document.getElementById('goalColor').value=goal.color||'#22c55e';
+      document.getElementById('goalGroup').value=goal.group||'My Goals';
+      document.getElementById('addGoalBtn').textContent="Update Goal";
     }
 
-    function deleteGoal(id){
-      if(confirm('Delete this goal?')){
-        goals = goals.filter(x=>x.id!==id);
-        save(); render();
+    function addAmountPrompt(id){
+      const goal = goals.find(g => g.id === id);
+      const value = parseFloat(prompt(`Add amount to "${goal.name}"`, 0));
+      if(!isNaN(value) && value > 0){
+        goal.amount = (goal.amount || 0) + value;
+        goal.transactions = goal.transactions || [];
+        goal.transactions.push({date: new Date().toLocaleDateString(), category: 'Added', amount: value});
+        localStorage.setItem('pwa-goals', JSON.stringify(goals));
+        renderGoals();
       }
     }
 
-    addGoalBtn.onclick = ()=>{
-      const name = newName.value.trim();
-      if(!name) { alert('Enter goal name'); return; }
-      const start = parseFloat(newStart.value || '0');
-      const target = parseFloat(newTarget.value || '0') || null;
-      const color = newColor.value || '#10b981';
-      goals.push({id:uid(),name,amount:isNaN(start)?0:start,color,note:'',target});
-      newName.value=''; newStart.value='0'; newTarget.value=''; save(); render();
+    function openDeleteModal(id){
+      deletingGoal=id;
+      document.getElementById('deleteModal').classList.add('show');
+      document.getElementById('confirmDeleteBtn').onclick=confirmDelete;
     }
 
-    document.getElementById('exportBtn').onclick = ()=>{
-      const data = JSON.stringify(goals, null, 2);
-      const blob = new Blob([data],{type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='budget-goals.json'; a.click(); URL.revokeObjectURL(url);
+    function confirmDelete(){
+      goals=goals.filter(g=>g.id!==deletingGoal);
+      localStorage.setItem('pwa-goals',JSON.stringify(goals));
+      closeModal('deleteModal');
+      renderGoals();
     }
-    document.getElementById('importBtn').onclick = ()=>{
-      const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
-      inp.onchange = ()=>{
-        const f = inp.files[0]; if(!f) return;
-        const r = new FileReader(); r.onload = e=>{ try{ const j = JSON.parse(e.target.result); if(Array.isArray(j)){ goals=j; save(); render(); toast('Imported'); } else alert('Invalid file'); }catch(err){alert('Invalid JSON')} };
-        r.readAsText(f);
-      }; inp.click();
+
+    function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+    function clearForm(){
+      document.getElementById('goalName').value='';
+      document.getElementById('goalAmount').value='';
+      document.getElementById('goalTarget').value='';
+      document.getElementById('dueValue').value='';
+      document.getElementById('goalColor').value='#22c55e';
+      document.getElementById('goalGroup').value='';
     }
-    document.getElementById('resetBtn').onclick = ()=>{ if(confirm('Reset all goals?')){ localStorage.removeItem(STORAGE_KEY); location.reload(); } }
 
-    function toast(msg){ const t=document.createElement('div'); t.textContent=msg; t.style.position='fixed'; t.style.bottom='24px'; t.style.left='50%'; t.style.transform='translateX(-50%)'; t.style.background='#111827'; t.style.color='#fff'; t.style.padding='10px 14px'; t.style.borderRadius='10px'; t.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
-    function escapeHtml(s){ return (s||'').toString().replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    function toggleTheme(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'light':'dark'}
 
-    function formatCurrency(num){ return new Intl.NumberFormat('en-EG',{style:'currency',currency:'EGP',minimumFractionDigits:0}).format(num); }
+    function exportJSON(){
+      const blob=new Blob([JSON.stringify(goals)],{type:'application/json'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='goals.json';a.click();
+    }
+    function importJSON(){
+      const inp=document.createElement('input');inp.type='file';inp.accept='application/json';
+      inp.onchange=e=>{const file=e.target.files[0];const r=new FileReader();r.onload=()=>{goals=JSON.parse(r.result);localStorage.setItem('pwa-goals',JSON.stringify(goals));renderGoals()};r.readAsText(file)};
+      inp.click();
+    }
+    function exportCSV(){
+      const rows=[["Name","Amount","Target","Due","Group"]];
+      goals.forEach(g=>rows.push([g.name,g.amount,g.target,g.due,g.group||'My Goals']));
+      const csv=rows.map(r=>r.join(",")).join("\n");
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='goals.csv';a.click();
+    }
 
-    // Theme toggle
-    function setTheme(mode){ document.documentElement.setAttribute('data-theme',mode); localStorage.setItem('theme',mode); themeBtn.textContent = mode==='dark'?'☀️':'🌙'; }
-    themeBtn.onclick = ()=>{ const current=document.documentElement.getAttribute('data-theme')||'light'; setTheme(current==='light'?'dark':'light'); }
-    setTheme(localStorage.getItem('theme')||'light');
-
-    // Removed service worker for simplicity to avoid SW failed error
-    render();
+    renderGoals();
   </script>
 </body>
 </html>
