@@ -1,187 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Budget PWA</title>
-  <style>
-    :root {
-      --bg:#f4f6f8;--card:#fff;--muted:#6b7280;--accent:#2563eb;--radius:14px;--gap:14px;--text:#111827;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial
-    }
-    [data-theme="dark"] {--bg:#0b1220;--card:#0f1724;--muted:#9aa8bf;--accent:#3b82f6;--text:#e6eef8}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-    .app{max-width:980px;margin:18px auto;padding:16px}
-    header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    h1{font-size:20px;margin:0}
-    .controls{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-    .btn{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn.secondary{background:#fff;color:var(--accent);border:1px solid #e6eefc}
-    .inline-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-    .inline-form input,.inline-form select{padding:6px 8px;border-radius:8px;border:1px solid #ccc}
-    .inline-form input[type="color"]{padding:0;border:none;width:42px;height:38px}
-    .group{margin-top:18px}
-    .group-header{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
-    .group-title{font-weight:700}
-    .goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-    @media(min-width:560px){ .goals-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))} }
-    .card{display:flex;flex-direction:column;justify-content:space-between;padding:12px;border-radius:12px;background:var(--card);box-shadow:0 6px 18px rgba(11,12,30,0.04);position:relative}
-    .card .top{display:flex;gap:10px;align-items:center}
-    .badge{width:44px;height:44px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
-    .meta{flex:1}
-    .name{font-weight:700}
-    .note{font-size:12px;color:var(--muted)}
-    .amount{font-weight:800;margin-top:8px}
-    .remaining{font-size:13px;color:var(--muted)}
-    .progress{height:8px;background:#eef3ff;border-radius:8px;overflow:hidden;margin-top:8px}
-    .progress > div{height:100%;transition:width .25s;background:var(--accent)}
-    .progress-text{font-size:12px;color:var(--muted);margin-top:4px;text-align:right}
-    .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-    .action-btn{padding:6px 8px;border-radius:8px;border:none;background:#f3f4f6;cursor:pointer;position:relative;font-size:16px}
-    .floating-add {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      width:36px;
-      height:36px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      font-size:18px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-    .goal-summary{display:none;padding:8px;margin-top:8px;border-radius:8px;background:rgba(0,0,0,0.02);font-size:13px}
-    footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
-    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,23,0.45);z-index:60}
-    .modal.show{display:flex}
-    .sheet{background:var(--card);padding:14px;border-radius:12px;min-width:300px;max-width:520px}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget PWA</title>
+<style>
+:root {
+  --bg:#f4f6f8;--card:#fff;--muted:#6b7280;--accent:#2563eb;--radius:14px;--gap:14px;--text:#111827;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial
+}
+[data-theme="dark"] {--bg:#0b1220;--card:#0f1724;--muted:#9aa8bf;--accent:#3b82f6;--text:#e6eef8}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.app{max-width:980px;margin:18px auto;padding:16px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:20px;margin:0}
+.controls{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
+.btn.secondary{background:#fff;color:var(--accent);border:1px solid #e6eefc}
+.inline-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.inline-form input,.inline-form select{padding:6px 8px;border-radius:8px;border:1px solid #ccc}
+.inline-form input[type="color"]{padding:0;border:none;width:42px;height:38px}
+.group{margin-top:18px}
+.group-header{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+.group-title{font-weight:700}
+.goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:560px){ .goals-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))} }
+.card{display:flex;flex-direction:column;justify-content:space-between;padding:12px;border-radius:12px;background:var(--card);box-shadow:0 6px 18px rgba(11,12,30,0.04);position:relative}
+.card .top{display:flex;gap:10px;align-items:center}
+.badge{width:44px;height:44px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.meta{flex:1}
+.name{font-weight:700}
+.note{font-size:12px;color:var(--muted)}
+.amount{font-weight:800;margin-top:8px}
+.remaining{font-size:13px;color:var(--muted)}
+.progress{height:8px;background:#eef3ff;border-radius:8px;overflow:hidden;margin-top:8px}
+.progress > div{height:100%;transition:width .25s;background:var(--accent)}
+.progress-text{font-size:12px;color:var(--muted);margin-top:4px;text-align:right}
+.actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.action-btn{padding:6px 8px;border-radius:8px;border:none;background:#f3f4f6;cursor:pointer;position:relative;font-size:16px}
+.floating-add {
+  position: absolute;
+  top:10px;
+  right:10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:20px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.2);
+}
+.goal-summary{display:none;padding:8px;margin-top:8px;border-radius:8px;background:rgba(0,0,0,0.02);font-size:13px}
+footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,23,0.45);z-index:60}
+.modal.show{display:flex}
+.sheet{background:var(--card);padding:14px;border-radius:12px;min-width:300px;max-width:520px}
+</style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <h1>💰 Budget — Goals</h1>
-      <div class="controls">
-        <button class="btn secondary" onclick="toggleTheme()">🌓</button>
-        <button class="btn" onclick="exportJSON()">Export JSON</button>
-        <button class="btn" onclick="importJSON()">Import</button>
-        <button class="btn" onclick="exportCSV()">Export CSV</button>
-      </div>
-    </header>
+<div class="app">
+<header>
+<h1>💰 Budget — Goals</h1>
+<div class="controls">
+  <button class="btn secondary" onclick="toggleTheme()">🌓</button>
+  <button class="btn" onclick="exportJSON()">Export JSON</button>
+  <button class="btn" onclick="importJSON()">Import</button>
+  <button class="btn" onclick="exportCSV()">Export CSV</button>
+</div>
+</header>
 
-    <div class="inline-form">
-      <input id="goalName" placeholder="Goal Name" />
-      <input id="goalAmount" type="number" placeholder="Amount (EGP)" />
-      <input id="goalTarget" type="number" placeholder="Target (optional)" />
-      <input id="dueValue" type="date" />
-      <input list="groupList" id="goalGroup" placeholder="Group (default: My Goals)" />
-      <datalist id="groupList"></datalist>
-      <input id="goalColor" type="color" value="#22c55e" />
-      <button class="btn" onclick="saveGoal()" id="addGoalBtn">Add Goal</button>
-    </div>
+<div class="inline-form">
+  <input id="goalName" placeholder="Goal Name" />
+  <input id="goalAmount" type="number" placeholder="Amount (EGP)" />
+  <input id="goalTarget" type="number" placeholder="Target (optional)" />
+  <input id="dueValue" type="date" />
+  <input list="groupList" id="goalGroup" placeholder="Group (default: My Goals)" />
+  <datalist id="groupList"></datalist>
+  <input id="goalColor" type="color" value="#22c55e" />
+  <button class="btn" onclick="saveGoal()" id="addGoalBtn">Add Goal</button>
+</div>
 
-    <div id="groups"></div>
-    <footer>Budget PWA — Offline Ready</footer>
-  </div>
+<div id="groups"></div>
+<footer>Budget PWA — Offline Ready</footer>
+</div>
 
-  <!-- Delete Confirmation Modal -->
-  <div id="deleteModal" class="modal">
-    <div class="sheet">
-      <p>Are you sure you want to delete this goal?</p>
-      <div style="text-align:right;margin-top:8px;">
-        <button class="btn secondary" onclick="closeModal('deleteModal')">Cancel</button>
-        <button class="btn" id="confirmDeleteBtn">Delete</button>
-      </div>
-    </div>
-  </div>
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+<div class="sheet">
+<p>Are you sure you want to delete this goal?</p>
+<div style="text-align:right;margin-top:8px;">
+<button class="btn secondary" onclick="closeModal('deleteModal')">Cancel</button>
+<button class="btn" id="confirmDeleteBtn">Delete</button>
+</div>
+</div>
+</div>
 
-  <script>
-    let goals = JSON.parse(localStorage.getItem('pwa-goals')||'[]');
-    let editingGoal = null;
-    let deletingGoal = null;
+<script>
+let goals = JSON.parse(localStorage.getItem('pwa-goals')||'[]');
+let editingGoal = null;
+let deletingGoal = null;
 
-    function getGroups(){
-      const uniqueGroups=[...new Set(goals.map(g=>g.group||'My Goals'))];
-      return uniqueGroups.length?uniqueGroups:["My Goals"];
-    }
+function getGroups(){
+  const uniqueGroups=[...new Set(goals.map(g=>g.group||'My Goals'))];
+  return uniqueGroups.length?uniqueGroups:["My Goals"];
+}
 
-    function renderGroupsDropdown(){
-      const list=document.getElementById('groupList');
-      list.innerHTML='';
-      getGroups().forEach(gr=>{
-        const option=document.createElement('option');
-        option.value=gr;
-        list.appendChild(option);
-      });
-    }
+function renderGroupsDropdown(){
+  const list=document.getElementById('groupList');
+  list.innerHTML='';
+  getGroups().forEach(gr=>{
+    const option=document.createElement('option');
+    option.value=gr;
+    list.appendChild(option);
+  });
+}
 
-    function renderGoals(){
-      const groupsDiv = document.getElementById('groups');
-      groupsDiv.innerHTML = '';
+function renderGoals(){
+  const groupsDiv = document.getElementById('groups');
+  groupsDiv.innerHTML = '';
 
-      if(goals.length === 0){
-        groupsDiv.innerHTML = '<p style="text-align:center;color:var(--muted)">No goals yet. Add one above!</p>';
-        renderGroupsDropdown();
-        return;
-      }
+  if(goals.length === 0){
+    groupsDiv.innerHTML = '<p style="text-align:center;color:var(--muted)">No goals yet. Add one above!</p>';
+    renderGroupsDropdown();
+    return;
+  }
 
-      const groupsMap = {};
-      goals.forEach(goal => {
-        const group = goal.group || 'My Goals';
-        if(!groupsMap[group]) groupsMap[group] = [];
-        groupsMap[group].push(goal);
-      });
+  const groupsMap = {};
+  goals.forEach(goal => {
+    const group = goal.group || 'My Goals';
+    if(!groupsMap[group]) groupsMap[group] = [];
+    groupsMap[group].push(goal);
+  });
 
-      Object.keys(groupsMap).forEach(groupName => {
-        const g = document.createElement('div');
-        g.className = 'group';
-        g.innerHTML = `<div class="group-header"><span class="group-title">${groupName}</span></div>`;
+  Object.keys(groupsMap).forEach(groupName => {
+    const g = document.createElement('div');
+    g.className = 'group';
+    g.innerHTML = `<div class="group-header"><span class="group-title">${groupName}</span></div>`;
 
-        const grid = document.createElement('div');
-        grid.className = 'goals-grid';
+    const grid = document.createElement('div');
+    grid.className = 'goals-grid';
 
-        groupsMap[groupName].forEach(goal => {
-          const pct = goal.target ? Math.min((goal.amount || 0) / goal.target * 100, 100) : 0;
+    groupsMap[groupName].forEach(goal => {
+      const pct = goal.target ? Math.min((goal.amount || 0) / goal.target * 100, 100) : 0;
 
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <div class="top">
-              <div class="badge" style="background:${goal.color || '#2563eb'}">${goal.name[0]}</div>
-              <div class="meta">
-                <div class="name">${goal.name}</div>
-                <div class="note">Due: ${goal.due || ''}</div>
-              </div>
-            </div>
-            <div class="amount">EGP ${goal.amount || 0} / ${goal.target || 0}</div>
-            <div class="remaining">Remaining: EGP ${(goal.target - (goal.amount || 0))}</div>
-            <div class="progress"><div style="width:${pct}%"></div></div>
-            <div class="progress-text">${pct.toFixed(1)}% completed</div>
-            <div class="actions">
-              <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
-              <button class="action-btn" onclick="openDeleteModal('${goal.id}')">🗑️</button>
-              <button class="action-btn" onclick="toggleSummary('${goal.id}')">ℹ️</button>
-            </div>
-            <button class="floating-add" onclick="addAmountPrompt('${goal.id}')">💸</button>
-            <div id="summary-${goal.id}" class="goal-summary">
-              ${(goal.transactions || []).slice(-3).map(t => `<div>${t.date} - ${t.category}: EGP ${t.amount}</div>`).join('') || 'No transactions'}
-            </div>
-          `;
-          grid.appendChild(card);
-        });
-
-        g.appendChild(grid);
-        groupsDiv.appendChild(g);
-      });
-
-      renderGroupsDropdown();
-    }
-
-    function toggleSummary(id){
-      const el = document.getElementById('summary-'+id);
-      if
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <button class="floating-add" onclick="addAmountPrompt('${goal.id}')">+</button>
+        <div class="top">
+          <div class="badge" style="background:${goal.color || '#2563eb'}">${goal.name[0]}</div>
+          <div class="meta">
+            <div class="name">${goal.name}</div>
+            <div class="note">Due: ${goal.due || ''}</div>
+          </div>
+        </div>
+        <div class="amount">EGP ${goal.amount || 0} / ${goal.target || 0}</div>
+        <div class="remaining">Remaining: EGP ${(goal.target - (goal.amount || 0))}</div>
+        <div class="progress"><div style="width:${pct}%"></div></div>
+        <div class="progress-text">${pct.toFixed(1)}% completed</div>
+        <div class="actions">
+          <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
+          <button class="action-btn" onclick="openDeleteModal('${
