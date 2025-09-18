@@ -2,36 +2,19 @@ const CACHE_NAME = 'budget-pwa-v1';
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
-  '/sw.js',
-  // add any other files like images, CSS if separate
+  '/sw.js'
 ];
 
-// Install SW and cache files
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(FILES_TO_CACHE);
-    })
-  );
+self.addEventListener('install', e=>{
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(FILES_TO_CACHE)));
   self.skipWaiting();
 });
-
-// Activate SW
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(keys.map(key => {
-        if(key !== CACHE_NAME) return caches.delete(key);
-      }));
-    })
-  );
+self.addEventListener('activate', e=>{
+  e.waitUntil(caches.keys().then(keys=>{
+    return Promise.all(keys.map(k=>{ if(k!==CACHE_NAME) return caches.delete(k); }));
+  }));
   self.clients.claim();
 });
-
-// Fetch requests: serve cached first
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(resp => resp || fetch(event.request))
-  );
+self.addEventListener('fetch', e=>{
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
 });
