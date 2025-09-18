@@ -56,7 +56,11 @@ footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
   <button class="btn" onclick="exportCSV()">Export CSV</button>
 </div>
 </header>
-
+<select id="currencySelect" onchange="changeCurrency()">
+  <option value="EGP">EGP</option>
+  <option value="USD" selected>USD</option>
+  <option value="SAR">SAR</option>
+</select>
 <div class="inline-form">
   <input id="goalName" placeholder="Goal Name" />
   <input id="goalAmount" type="number" placeholder="Amount (EGP)" />
@@ -83,6 +87,21 @@ footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
 </div>
 
 <script>
+  let currentCurrency = localStorage.getItem("currency") || "USD";
+
+document.getElementById("currencySelect").value = currentCurrency;
+
+function changeCurrency() {
+  currentCurrency = document.getElementById("currencySelect").value;
+  localStorage.setItem("currency", currentCurrency);
+  renderGoals();
+}
+
+function formatCurrency(amount) {
+  const symbols = { EGP: "£", USD: "$", SAR: "﷼" };
+  return symbols[currentCurrency] + amount;
+}
+
 let goals = JSON.parse(localStorage.getItem('pwa-goals')||'[]');
 let editingGoal = null;
 let deletingGoal = null;
@@ -120,6 +139,9 @@ function editGoal(id){
   document.getElementById('goalColor').value=g.color||'#22c55e';
   document.getElementById('goalGroup').value=g.group||'My Goals';
   document.getElementById('addGoalBtn').textContent="Update Goal";
+  <p>Target: ${formatCurrency(goal.target)}</p>
+<p>Saved: ${formatCurrency(goal.saved)}</p>
+<li>${formatCurrency(t.amount)} – ${t.note}</li>
 }
 
 function clearForm(){
