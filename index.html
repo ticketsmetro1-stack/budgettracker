@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Budget PWA</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Budget — Goals</title>
   <style>
     :root {
       --bg:#f4f6f8;--card:#fff;--muted:#6b7280;--accent:#2563eb;--radius:14px;--gap:14px;--text:#111827;
@@ -38,6 +38,9 @@
     .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
     .action-btn{padding:6px 8px;border-radius:8px;border:none;background:#f3f4f6;cursor:pointer}
     .goal-summary{display:none;padding:8px;margin-top:8px;border-radius:8px;background:rgba(0,0,0,0.02);font-size:13px}
+    .tx-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.03)}
+    .tx-left{font-size:13px;color:var(--muted)}
+    .tx-actions button{background:none;border:none;cursor:pointer}
     footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,23,0.45);z-index:60}
     .modal.show{display:flex}
@@ -45,6 +48,7 @@
     .sheet h3{margin:0 0 12px;font-size:18px}
     .sheet input{width:100%;padding:8px;margin-bottom:10px;border:1px solid #ccc;border-radius:8px}
     .sheet .btn-row{display:flex;justify-content:flex-end;gap:8px}
+    .small-muted{font-size:12px;color:var(--muted);margin-top:6px}
   </style>
 </head>
 <body>
@@ -59,6 +63,7 @@
       </div>
     </header>
 
+    <!-- Inline Add Goal Form (keeps your original design) -->
     <div class="inline-form">
       <input id="goalName" placeholder="Goal Name" />
       <div style="display:flex;align-items:center;gap:4px;">
@@ -88,7 +93,7 @@
     <footer>Budget PWA — Offline Ready</footer>
   </div>
 
-  <!-- Delete Modal -->
+  <!-- Delete Confirmation Modal -->
   <div id="deleteModal" class="modal">
     <div class="sheet">
       <p>Are you sure you want to delete this goal?</p>
@@ -99,38 +104,58 @@
     </div>
   </div>
 
-  <!-- Transaction Modal -->
+  <!-- Transaction Modal (clean UI) -->
   <div id="transactionModal" class="modal">
     <div class="sheet">
       <h3>Add Transaction</h3>
       <input id="txAmount" type="number" placeholder="Amount" />
-      <input id="txCategory" placeholder="Category" />
+      <input id="txCategory" placeholder="Category (e.g. Food, Bills)" />
       <input id="txDate" type="date" />
       <div class="btn-row">
         <button class="btn secondary" onclick="closeModal('transactionModal')">Cancel</button>
         <button class="btn" id="confirmTxBtn">Add</button>
       </div>
+      <div class="small-muted" id="txCurrencyHint" style="margin-top:8px;"></div>
     </div>
   </div>
 
   <script>
+    // Data load
     let goals = JSON.parse(localStorage.getItem('pwa-goals')||'[]');
-    let editingGoal = null, deletingGoal = null, txGoal = null;
 
+    // state
+    let editingGoal = null;
+    let deletingGoal = null;
+    let txGoal = null; // id of the goal currently adding transaction to
+
+    // Helpers
     function getGroups(){
       const uniqueGroups=[...new Set(goals.map(g=>g.group||'My Goals'))];
       return uniqueGroups.length?uniqueGroups:["My Goals"];
     }
     function renderGroupsDropdown(){
-      const list=document.getElementById('groupList'); list.innerHTML='';
+      const list=document.getElementById('groupList');
+      if(!list) return;
+      list.innerHTML='';
       getGroups().forEach(gr=>{
-        const option=document.createElement('option'); option.value=gr; list.appendChild(option);
+        const option=document.createElement('option');
+        option.value=gr;
+        list.appendChild(option);
       });
     }
 
+    function formatCurrencySymbol(code){
+      const map = { EGP: "EGP", USD: "USD", SAR: "SAR" };
+      return map[code] || code;
+    }
+
+    // Render goals (keeps your original card layout)
     function renderGoals(){
-      const groupsDiv=document.getElementById('groups'); groupsDiv.innerHTML='';
+      renderGroupsDropdown();
+      const groupsDiv=document.getElementById('groups');
+      groupsDiv.innerHTML='';
       const groupsMap={};
+
       goals.forEach(goal=>{
         const group=goal.group||'My Goals';
         if(!groupsMap[group]) groupsMap[group]=[];
@@ -138,120 +163,219 @@
       });
 
       Object.keys(groupsMap).forEach(groupName=>{
-        const g=document.createElement('div'); g.className='group';
+        const g=document.createElement('div');
+        g.className='group';
         g.innerHTML=`<div class="group-header"><span class="group-title">${groupName}</span></div>`;
         const grid=document.createElement('div'); grid.className='goals-grid';
 
         groupsMap[groupName].forEach(goal=>{
-          const pct=(goal.amount||0)/(goal.target||1)*100;
+          // compute saved total = initial amount + sum(transactions)
+          const base = Number(goal.amount || 0);
+          const txTotal = (goal.transactions||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+          const saved = base + txTotal;
+
+          const target = Number(goal.target || 0);
+          const hasTarget = target > 0;
+          const pct = hasTarget ? Math.min((saved/target)*100, 100) : 0;
+
           const card=document.createElement('div'); card.className='card';
           card.innerHTML=`
             <div class="top">
-              <div class="badge" style="background:${goal.color||'#2563eb'}">${goal.name[0]}</div>
+              <div class="badge" style="background:${goal.color||'#2563eb'}">${(goal.name||'')[0]||'G'}</div>
               <div class="meta">
                 <div class="name">${goal.name}</div>
                 <div class="note">Due: ${goal.due||''}</div>
               </div>
             </div>
-            <div class="amount">${goal.currency||'EGP'} ${goal.amount||0} / ${goal.currency||'EGP'} ${goal.target||0}</div>
-            <div class="remaining">Remaining: ${goal.currency||'EGP'} ${(goal.target-(goal.amount||0))}</div>
-            <div class="progress"><div style="width:${pct}%"></div></div>
+
+            <div class="amount">${formatCurrencySymbol(goal.amountCurrency || goal.currency || goal.amountCurrency || 'EGP')} ${saved} / ${formatCurrencySymbol(goal.targetCurrency || goal.currency || 'EGP')} ${hasTarget ? target : 0}</div>
+
+            <div class="remaining">
+              ${ hasTarget ? `Remaining: ${formatCurrencySymbol(goal.targetCurrency||'EGP')} ${Math.max(target - saved, 0)}` : `Collected: ${formatCurrencySymbol(goal.amountCurrency||'EGP')} ${saved}` }
+            </div>
+
+            <div class="progress"><div style="width:${pct}%;background:${goal.color||'var(--accent)'}"></div></div>
+            <div style="font-size:12px;margin-top:6px;color:var(--muted)">${hasTarget ? pct.toFixed(1) + '%' : ''}</div>
+
             <div class="actions">
               <button class="action-btn" onclick="addTransaction('${goal.id}')">➕</button>
               <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
               <button class="action-btn" onclick="openDeleteModal('${goal.id}')">🗑️</button>
               <button class="action-btn" onclick="toggleSummary('${goal.id}')">ℹ️</button>
             </div>
+
             <div id="summary-${goal.id}" class="goal-summary">
-              ${(goal.transactions||[]).map(t=>`<div>${t.date} - ${t.category}: ${goal.currency||'EGP'} ${t.amount}</div>`).join('')||'No transactions'}
+              ${(goal.transactions||[]).length ? (goal.transactions||[]).map((t,i)=>`
+                <div class="tx-row">
+                  <div class="tx-left">${t.date} — ${t.category || 'General'} — ${formatCurrencySymbol(goal.amountCurrency||'EGP')} ${t.amount}</div>
+                  <div class="tx-actions">
+                    <button onclick="deleteTransaction('${goal.id}', ${i})" title="Delete transaction">🗑</button>
+                  </div>
+                </div>
+              `).join('') : 'No transactions'}
             </div>
           `;
           grid.appendChild(card);
         });
+
         g.appendChild(grid); groupsDiv.appendChild(g);
       });
-      renderGroupsDropdown();
     }
 
+    // Toggle summary
     function toggleSummary(id){
       const el=document.getElementById('summary-'+id);
-      el.style.display=el.style.display==='block'?'none':'block';
+      if(!el) return;
+      el.style.display = el.style.display === 'block' ? 'none' : 'block';
     }
 
+    // Save or add goal
     function saveGoal(){
       const name=document.getElementById('goalName').value.trim();
       if(!name){ alert("Please enter a goal name"); return; }
-      const amount=parseFloat(document.getElementById('goalAmount').value)||0;
-      const target=parseFloat(document.getElementById('goalTarget').value)||0;
-      const due=document.getElementById('dueValue').value;
-      const color=document.getElementById('goalColor').value;
-      const group=(document.getElementById('goalGroup').value.trim()||'My Goals');
-      const currency=document.getElementById('goalAmountCurrency').value;
+
+      const amount = Number(document.getElementById('goalAmount').value) || 0;
+      const target = Number(document.getElementById('goalTarget').value) || 0;
+      const due = document.getElementById('dueValue').value;
+      const color = document.getElementById('goalColor').value;
+      const group = (document.getElementById('goalGroup')?.value?.trim() || 'My Goals');
+
+      // currency selectors (amount & target). Default to EGP
+      const amountCurrency = document.getElementById('goalAmountCurrency')?.value || 'EGP';
+      const targetCurrency = document.getElementById('goalTargetCurrency')?.value || amountCurrency || 'EGP';
 
       if(editingGoal){
-        let goal=goals.find(g=>g.id===editingGoal);
-        goal.name=name; goal.amount=amount; goal.target=target; goal.due=due; goal.color=color; goal.group=group; goal.currency=currency;
-        editingGoal=null; document.getElementById('addGoalBtn').textContent="Add Goal";
+        const goal = goals.find(g=>g.id===editingGoal);
+        if(!goal) return;
+        goal.name = name;
+        goal.amount = amount;           // initial base amount (we'll add transactions separately)
+        goal.target = target;
+        goal.due = due;
+        goal.color = color;
+        goal.group = group;
+        goal.amountCurrency = amountCurrency;
+        goal.targetCurrency = targetCurrency;
+        editingGoal = null;
+        document.getElementById('addGoalBtn').textContent = "Add Goal";
       } else {
-        goals.push({id:Date.now().toString(), name, amount, target, due, color, group, currency, transactions:[]});
+        goals.push({
+          id: Date.now().toString(),
+          name, amount, target, due, color, group,
+          amountCurrency, targetCurrency,
+          transactions: []
+        });
       }
-      localStorage.setItem('pwa-goals',JSON.stringify(goals));
-      renderGoals(); clearForm();
+
+      localStorage.setItem('pwa-goals', JSON.stringify(goals));
+      renderGoals();
+      clearForm();
     }
 
+    // Edit
     function editGoal(id){
-      editingGoal=id;
-      const goal=goals.find(g=>g.id===id);
-      document.getElementById('goalName').value=goal.name;
-      document.getElementById('goalAmount').value=goal.amount;
-      document.getElementById('goalTarget').value=goal.target;
-      document.getElementById('dueValue').value=goal.due||'';
-      document.getElementById('goalColor').value=goal.color||'#22c55e';
-      document.getElementById('goalGroup').value=goal.group||'My Goals';
-      document.getElementById('goalAmountCurrency').value=goal.currency||'EGP';
-      document.getElementById('goalTargetCurrency').value=goal.currency||'EGP';
-      document.getElementById('addGoalBtn').textContent="Update Goal";
+      editingGoal = id;
+      const goal = goals.find(g=>g.id===id);
+      if(!goal) return;
+      document.getElementById('goalName').value = goal.name || '';
+      document.getElementById('goalAmount').value = goal.amount || '';
+      document.getElementById('goalTarget').value = goal.target || '';
+      document.getElementById('dueValue').value = goal.due || '';
+      if(document.getElementById('goalColor')) document.getElementById('goalColor').value = goal.color || '#22c55e';
+      if(document.getElementById('goalGroup')) document.getElementById('goalGroup').value = goal.group || 'My Goals';
+      if(document.getElementById('goalAmountCurrency')) document.getElementById('goalAmountCurrency').value = goal.amountCurrency || 'EGP';
+      if(document.getElementById('goalTargetCurrency')) document.getElementById('goalTargetCurrency').value = goal.targetCurrency || goal.amountCurrency || 'EGP';
+      document.getElementById('addGoalBtn').textContent = "Update Goal";
     }
 
+    // Delete goal modal
     function openDeleteModal(id){
-      deletingGoal=id;
+      deletingGoal = id;
       document.getElementById('deleteModal').classList.add('show');
-      document.getElementById('confirmDeleteBtn').onclick=confirmDelete;
+      document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
     }
     function confirmDelete(){
-      goals=goals.filter(g=>g.id!==deletingGoal);
-      localStorage.setItem('pwa-goals',JSON.stringify(goals));
-      closeModal('deleteModal'); renderGoals();
+      goals = goals.filter(g => g.id !== deletingGoal);
+      localStorage.setItem('pwa-goals', JSON.stringify(goals));
+      deletingGoal = null;
+      closeModal('deleteModal');
+      renderGoals();
     }
 
+    // Add Transaction modal: clear inputs when opening (fixes leak)
     function addTransaction(goalId){
-      txGoal=goalId;
+      txGoal = goalId;
+      // clear inputs
+      document.getElementById('txAmount').value = '';
+      document.getElementById('txCategory').value = '';
+      document.getElementById('txDate').value = ''; // user picks, or leave empty
+      // show currency hint for this goal
+      const goal = goals.find(g=>g.id===goalId);
+      const currency = goal?.amountCurrency || goal?.amountCurrency || 'EGP';
+      document.getElementById('txCurrencyHint').textContent = `Recording in ${currency}`;
+      // open modal
       document.getElementById('transactionModal').classList.add('show');
-      document.getElementById('confirmTxBtn').onclick=confirmAddTransaction;
-    }
-    function confirmAddTransaction(){
-      const amt=parseFloat(document.getElementById('txAmount').value)||0;
-      const cat=document.getElementById('txCategory').value||'Other';
-      const date=document.getElementById('txDate').value;
-      const g=goals.find(x=>x.id===txGoal);
-      g.amount+=amt;
-      g.transactions.push({amount:amt,category:cat,date});
-      localStorage.setItem('pwa-goals',JSON.stringify(goals));
-      closeModal('transactionModal'); renderGoals();
+
+      // bind confirm handler (overwrite previous)
+      document.getElementById('confirmTxBtn').onclick = confirmAddTransaction;
+
+      // focus amount
+      setTimeout(()=>{ document.getElementById('txAmount').focus(); }, 120);
     }
 
-    function closeModal(id){document.getElementById(id).classList.remove('show')}
+    function confirmAddTransaction(){
+      const amt = Number(document.getElementById('txAmount').value) || 0;
+      const cat = document.getElementById('txCategory').value.trim() || 'General';
+      const date = document.getElementById('txDate').value || new Date().toISOString().slice(0,10);
+
+      const goal = goals.find(g=>g.id===txGoal);
+      if(!goal){
+        closeModal('transactionModal');
+        txGoal = null;
+        return;
+      }
+
+      // push transaction (do NOT change goal.amount; saved = base + sum(transactions))
+      goal.transactions = goal.transactions || [];
+      goal.transactions.push({ amount: amt, category: cat, date });
+
+      // persist & close
+      localStorage.setItem('pwa-goals', JSON.stringify(goals));
+
+      // clear inputs (avoid leak)
+      document.getElementById('txAmount').value = '';
+      document.getElementById('txCategory').value = '';
+      document.getElementById('txDate').value = '';
+
+      txGoal = null;
+      closeModal('transactionModal');
+      renderGoals();
+    }
+
+    // Delete a transaction from a goal
+    function deleteTransaction(goalId, txIndex){
+      const goal = goals.find(g=>g.id===goalId);
+      if(!goal) return;
+      if(!goal.transactions || !goal.transactions[txIndex]) return;
+      // remove transaction
+      goal.transactions.splice(txIndex, 1);
+      localStorage.setItem('pwa-goals', JSON.stringify(goals));
+      renderGoals();
+    }
+
+    function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
     function clearForm(){
       document.getElementById('goalName').value='';
       document.getElementById('goalAmount').value='';
       document.getElementById('goalTarget').value='';
       document.getElementById('dueValue').value='';
-      document.getElementById('goalColor').value='#22c55e';
-      document.getElementById('goalGroup').value='';
-      document.getElementById('goalAmountCurrency').value='EGP';
-      document.getElementById('goalTargetCurrency').value='EGP';
+      if(document.getElementById('goalColor')) document.getElementById('goalColor').value='#22c55e';
+      if(document.getElementById('goalGroup')) document.getElementById('goalGroup').value='';
+      if(document.getElementById('goalAmountCurrency')) document.getElementById('goalAmountCurrency').value='EGP';
+      if(document.getElementById('goalTargetCurrency')) document.getElementById('goalTargetCurrency').value='EGP';
     }
-    function toggleTheme(){document.body.dataset.theme=document.body.dataset.theme==='dark'?'light':'dark'}
+
+    function toggleTheme(){ document.body.dataset.theme = document.body.dataset.theme==='dark' ? 'light' : 'dark'; }
 
     function exportJSON(){
       const blob=new Blob([JSON.stringify(goals)],{type:'application/json'});
@@ -263,18 +387,30 @@
       inp.click();
     }
     function exportCSV(){
-      const rows=[["Name","Amount","Target","Due","Group","Currency"]];
-      goals.forEach(g=>rows.push([g.name,g.amount,g.target,g.due,g.group||'My Goals',g.currency||'EGP']));
-      const csv=rows.map(r=>r.join(",")).join("\n");
+      const rows=[["Name","Saved","Target","Due","Group","AmountCurrency","TargetCurrency"]];
+      goals.forEach(g=>{const base=Number(g.amount||0);const txTotal=(g.transactions||[]).reduce((s,t)=>s+Number(t.amount||0),0);const saved=base+txTotal;rows.push([g.name,saved,g.target,g.due,g.group||'My Goals',g.amountCurrency||'EGP',g.targetCurrency||g.amountCurrency||'EGP'])});
+      const csv=rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
       const blob=new Blob([csv],{type:'text/csv'});
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='goals.csv';a.click();
     }
 
-    // Expose functions so inline onclick works
-    window.saveGoal=saveGoal; window.editGoal=editGoal; window.openDeleteModal=openDeleteModal;
-    window.addTransaction=addTransaction; window.toggleSummary=toggleSummary;
+    // expose functions used in inline onclick attributes
+    window.saveGoal = saveGoal;
+    window.editGoal = editGoal;
+    window.openDeleteModal = openDeleteModal;
+    window.addTransaction = addTransaction;
+    window.toggleSummary = toggleSummary;
+    window.deleteTransaction = deleteTransaction;
 
+    // initial render
     renderGoals();
+
+    // Optional: register service worker (if you have sw.js deployed)
+    if('serviceWorker' in navigator){
+      window.addEventListener('load', ()=>{
+        navigator.serviceWorker?.register('sw.js').catch(()=>{/* ignore */});
+      });
+    }
   </script>
 </body>
 </html>
