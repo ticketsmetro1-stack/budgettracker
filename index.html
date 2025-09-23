@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Budget — Goals</title>
   <style>
-    :root {
-      --bg:#f4f6f8;--card:#fff;--muted:#6b7280;--accent:#2563eb;--radius:14px;--gap:14px;--text:#111827;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial
+    :root{
+      --bg:#f4f6f8; --card:#fff; --muted:#6b7280; --accent:#2563eb; --radius:12px; --text:#111827;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
-    [data-theme="dark"] {--bg:#0b1220;--card:#0f1724;--muted:#9aa8bf;--accent:#3b82f6;--text:#e6eef8}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    body{margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
     .app{max-width:980px;margin:18px auto;padding:16px}
     header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     h1{font-size:20px;margin:0}
@@ -19,14 +18,13 @@
     .btn.secondary{background:#fff;color:var(--accent);border:1px solid #e6eefc}
     .inline-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .inline-form input,.inline-form select{padding:6px 8px;border-radius:8px;border:1px solid #ccc}
-    .inline-form input[type="color"]{padding:0;border:none;width:42px;height:38px}
     .group{margin-top:18px}
     .group-header{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
     .group-title{font-weight:700}
     .goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
     @media(min-width:560px){ .goals-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))} }
     .card{display:flex;flex-direction:column;justify-content:space-between;padding:12px;border-radius:12px;background:var(--card);box-shadow:0 6px 18px rgba(11,12,30,0.04)}
-    .card .top{display:flex;gap:10px;align-items:center}
+    .top{display:flex;gap:10px;align-items:center}
     .badge{width:44px;height:44px;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
     .meta{flex:1}
     .name{font-weight:700}
@@ -38,13 +36,13 @@
     .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
     .action-btn{padding:6px 8px;border-radius:8px;border:none;background:#f3f4f6;cursor:pointer}
     .goal-summary{display:none;padding:8px;margin-top:8px;border-radius:8px;background:rgba(0,0,0,0.02);font-size:13px}
-    .tx-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.03)}
+    .tx-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.03)}
     .tx-left{font-size:13px;color:var(--muted)}
     .tx-actions button{background:none;border:none;cursor:pointer}
     footer{margin-top:20px;color:var(--muted);font-size:13px;text-align:center}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,23,0.45);z-index:60}
     .modal.show{display:flex}
-    .sheet{background:var(--card);padding:16px;border-radius:12px;min-width:300px;max-width:420px}
+    .sheet{background:var(--card);padding:16px;border-radius:12px;min-width:300px;max-width:460px}
     .sheet h3{margin:0 0 12px;font-size:18px}
     .sheet input{width:100%;padding:8px;margin-bottom:10px;border:1px solid #ccc;border-radius:8px}
     .sheet .btn-row{display:flex;justify-content:flex-end;gap:8px}
@@ -63,7 +61,7 @@
       </div>
     </header>
 
-    <!-- Inline Add Goal Form (keeps your original design) -->
+    <!-- Add / Edit Goal Form -->
     <div class="inline-form">
       <input id="goalName" placeholder="Goal Name" />
       <div style="display:flex;align-items:center;gap:4px;">
@@ -93,7 +91,7 @@
     <footer>Budget PWA — Offline Ready</footer>
   </div>
 
-  <!-- Delete Confirmation Modal -->
+  <!-- Delete Modal -->
   <div id="deleteModal" class="modal">
     <div class="sheet">
       <p>Are you sure you want to delete this goal?</p>
@@ -104,10 +102,10 @@
     </div>
   </div>
 
-  <!-- Transaction Modal (clean UI) -->
+  <!-- Transaction Modal -->
   <div id="transactionModal" class="modal">
     <div class="sheet">
-      <h3>Add Transaction</h3>
+      <h3 id="txModalTitle">Add Transaction</h3>
       <input id="txAmount" type="number" placeholder="Amount" />
       <input id="txCategory" placeholder="Category (e.g. Food, Bills)" />
       <input id="txDate" type="date" />
@@ -115,71 +113,74 @@
         <button class="btn secondary" onclick="closeModal('transactionModal')">Cancel</button>
         <button class="btn" id="confirmTxBtn">Add</button>
       </div>
-      <div class="small-muted" id="txCurrencyHint" style="margin-top:8px;"></div>
+      <div class="small-muted" id="txCurrencyHint"></div>
     </div>
   </div>
 
   <script>
-    // Data load
+    // --- Data ---
     let goals = JSON.parse(localStorage.getItem('pwa-goals')||'[]');
 
-    // state
-    let editingGoal = null;
-    let deletingGoal = null;
-    let txGoal = null; // id of the goal currently adding transaction to
+    // Keep editing state and transaction state
+    let editingGoalId = null;
+    let deletingGoalId = null;
+    let txGoalId = null;
+    let txSubtractMode = false;
+    let showPercentage = false;
 
     // Helpers
+    function formatNumber(n){
+      if (Number.isInteger(n)) return String(n);
+      return Number(n).toFixed(2);
+    }
+    function formatCurrencySymbol(code){
+      // Keep simple: show code (EGP, USD, SAR)
+      return code || 'EGP';
+    }
+
     function getGroups(){
-      const uniqueGroups=[...new Set(goals.map(g=>g.group||'My Goals'))];
-      return uniqueGroups.length?uniqueGroups:["My Goals"];
+      const unique = [...new Set(goals.map(g => g.group || 'My Goals'))];
+      return unique.length ? unique : ['My Goals'];
     }
     function renderGroupsDropdown(){
-      const list=document.getElementById('groupList');
+      const list = document.getElementById('groupList');
       if(!list) return;
-      list.innerHTML='';
-      getGroups().forEach(gr=>{
-        const option=document.createElement('option');
-        option.value=gr;
-        list.appendChild(option);
+      list.innerHTML = '';
+      getGroups().forEach(g => {
+        const o = document.createElement('option'); o.value = g; list.appendChild(o);
       });
     }
 
-    function formatCurrencySymbol(code){
-      const map = { EGP: "EGP", USD: "USD", SAR: "SAR" };
-      return map[code] || code;
-    }
-
-    // Render goals (keeps your original card layout)
+    // --- Render ---
     function renderGoals(){
       renderGroupsDropdown();
-      const groupsDiv=document.getElementById('groups');
-      groupsDiv.innerHTML='';
-      const groupsMap={};
+      const groupsDiv = document.getElementById('groups');
+      groupsDiv.innerHTML = '';
 
-      goals.forEach(goal=>{
-        const group=goal.group||'My Goals';
-        if(!groupsMap[group]) groupsMap[group]=[];
-        groupsMap[group].push(goal);
+      const groupsMap = {};
+      goals.forEach(g => {
+        const grp = g.group || 'My Goals';
+        if(!groupsMap[grp]) groupsMap[grp] = [];
+        groupsMap[grp].push(g);
       });
 
-      Object.keys(groupsMap).forEach(groupName=>{
-        const g=document.createElement('div');
-        g.className='group';
-        g.innerHTML=`<div class="group-header"><span class="group-title">${groupName}</span></div>`;
-        const grid=document.createElement('div'); grid.className='goals-grid';
+      Object.keys(groupsMap).forEach(groupName => {
+        const groupEl = document.createElement('div'); groupEl.className = 'group';
+        groupEl.innerHTML = `<div class="group-header"><span class="group-title">${groupName}</span></div>`;
+        const grid = document.createElement('div'); grid.className = 'goals-grid';
 
-        groupsMap[groupName].forEach(goal=>{
-          // compute saved total = initial amount + sum(transactions)
+        groupsMap[groupName].forEach(goal => {
+          // compute saved: base amount + sum(transactions)
           const base = Number(goal.amount || 0);
-          const txTotal = (goal.transactions||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+          const txTotal = (goal.transactions || []).reduce((s,t) => s + Number(t.amount || 0), 0);
           const saved = base + txTotal;
 
           const target = Number(goal.target || 0);
           const hasTarget = target > 0;
-          const pct = hasTarget ? Math.min((saved/target)*100, 100) : 0;
+          const pct = hasTarget ? Math.min((saved / target) * 100, 100) : 0;
 
-          const card=document.createElement('div'); card.className='card';
-          card.innerHTML=`
+          const card = document.createElement('div'); card.className = 'card';
+          card.innerHTML = `
             <div class="top">
               <div class="badge" style="background:${goal.color||'#2563eb'}">${(goal.name||'')[0]||'G'}</div>
               <div class="meta">
@@ -188,28 +189,36 @@
               </div>
             </div>
 
-            <div class="amount">${formatCurrencySymbol(goal.amountCurrency || goal.currency || goal.amountCurrency || 'EGP')} ${saved} / ${formatCurrencySymbol(goal.targetCurrency || goal.currency || 'EGP')} ${hasTarget ? target : 0}</div>
+            <div class="amount">
+              ${ hasTarget 
+                  ? `${formatCurrencySymbol(goal.amountCurrency || goal.currency || 'EGP')} ${formatNumber(saved)} / ${formatCurrencySymbol(goal.targetCurrency || goal.currency || 'EGP')} ${formatNumber(target)}`
+                  : `${formatCurrencySymbol(goal.amountCurrency || goal.currency || 'EGP')} ${formatNumber(saved)}`
+              }
+            </div>
 
             <div class="remaining">
-              ${ hasTarget ? `Remaining: ${formatCurrencySymbol(goal.targetCurrency||'EGP')} ${Math.max(target - saved, 0)}` : `Collected: ${formatCurrencySymbol(goal.amountCurrency||'EGP')} ${saved}` }
+              ${ hasTarget ? `Remaining: ${formatCurrencySymbol(goal.targetCurrency || 'EGP')} ${formatNumber(Math.max(target - saved, 0))}`
+                           : `Collected: ${formatCurrencySymbol(goal.amountCurrency || 'EGP')} ${formatNumber(saved)}` }
             </div>
 
             <div class="progress"><div style="width:${pct}%;background:${goal.color||'var(--accent)'}"></div></div>
             <div style="font-size:12px;margin-top:6px;color:var(--muted)">${hasTarget ? pct.toFixed(1) + '%' : ''}</div>
 
             <div class="actions">
-              <button class="action-btn" onclick="addTransaction('${goal.id}')">➕</button>
-              <button class="action-btn" onclick="editGoal('${goal.id}')">✏️</button>
+              <button class="action-btn" onclick="openTransactionModal('${goal.id}', false)">➕</button>
+              ${ !hasTarget ? `<button class="action-btn" onclick="openTransactionModal('${goal.id}', true)">➖</button>` : '' }
+              <button class="action-btn" onclick="startEditGoal('${goal.id}')">✏️</button>
               <button class="action-btn" onclick="openDeleteModal('${goal.id}')">🗑️</button>
               <button class="action-btn" onclick="toggleSummary('${goal.id}')">ℹ️</button>
             </div>
 
             <div id="summary-${goal.id}" class="goal-summary">
-              ${(goal.transactions||[]).length ? (goal.transactions||[]).map((t,i)=>`
+              ${(goal.transactions || []).length ? (goal.transactions || []).map((t, idx) => `
                 <div class="tx-row">
-                  <div class="tx-left">${t.date} — ${t.category || 'General'} — ${formatCurrencySymbol(goal.amountCurrency||'EGP')} ${t.amount}</div>
+                  <div class="tx-left">${t.date} — ${t.category || 'General'}</div>
                   <div class="tx-actions">
-                    <button onclick="deleteTransaction('${goal.id}', ${i})" title="Delete transaction">🗑</button>
+                    <span style="margin-right:10px;color:${t.amount<0?'#cc0000':'#0b8a40'}">${formatCurrencySymbol(goal.amountCurrency||'EGP')} ${formatNumber(t.amount)}</span>
+                    <button title="Delete transaction" onclick="deleteTransaction('${goal.id}', ${idx})">✖</button>
                   </div>
                 </div>
               `).join('') : 'No transactions'}
@@ -218,45 +227,36 @@
           grid.appendChild(card);
         });
 
-        g.appendChild(grid); groupsDiv.appendChild(g);
+        groupEl.appendChild(grid);
+        groupsDiv.appendChild(groupEl);
       });
     }
 
-    // Toggle summary
-    function toggleSummary(id){
-      const el=document.getElementById('summary-'+id);
-      if(!el) return;
-      el.style.display = el.style.display === 'block' ? 'none' : 'block';
-    }
-
-    // Save or add goal
+    // --- Goal CRUD ---
     function saveGoal(){
-      const name=document.getElementById('goalName').value.trim();
-      if(!name){ alert("Please enter a goal name"); return; }
-
+      const name = document.getElementById('goalName').value.trim();
+      if(!name){ alert('Please enter a goal name'); return; }
       const amount = Number(document.getElementById('goalAmount').value) || 0;
       const target = Number(document.getElementById('goalTarget').value) || 0;
-      const due = document.getElementById('dueValue').value;
-      const color = document.getElementById('goalColor').value;
-      const group = (document.getElementById('goalGroup')?.value?.trim() || 'My Goals');
-
-      // currency selectors (amount & target). Default to EGP
+      const due = document.getElementById('dueValue').value || '';
+      const color = document.getElementById('goalColor').value || '#22c55e';
+      const group = (document.getElementById('goalGroup')?.value?.trim()) || 'My Goals';
       const amountCurrency = document.getElementById('goalAmountCurrency')?.value || 'EGP';
-      const targetCurrency = document.getElementById('goalTargetCurrency')?.value || amountCurrency || 'EGP';
+      const targetCurrency = document.getElementById('goalTargetCurrency')?.value || amountCurrency;
 
-      if(editingGoal){
-        const goal = goals.find(g=>g.id===editingGoal);
-        if(!goal) return;
-        goal.name = name;
-        goal.amount = amount;           // initial base amount (we'll add transactions separately)
-        goal.target = target;
-        goal.due = due;
-        goal.color = color;
-        goal.group = group;
-        goal.amountCurrency = amountCurrency;
-        goal.targetCurrency = targetCurrency;
-        editingGoal = null;
-        document.getElementById('addGoalBtn').textContent = "Add Goal";
+      if(editingGoalId){
+        const g = goals.find(x=>x.id === editingGoalId);
+        if(!g) return;
+        g.name = name;
+        g.amount = amount;
+        g.target = target;
+        g.due = due;
+        g.color = color;
+        g.group = group;
+        g.amountCurrency = amountCurrency;
+        g.targetCurrency = targetCurrency;
+        editingGoalId = null;
+        document.getElementById('addGoalBtn').textContent = 'Add Goal';
       } else {
         goals.push({
           id: Date.now().toString(),
@@ -267,149 +267,147 @@
       }
 
       localStorage.setItem('pwa-goals', JSON.stringify(goals));
-      renderGoals();
       clearForm();
+      renderGoals();
     }
 
-    // Edit
-    function editGoal(id){
-      editingGoal = id;
-      const goal = goals.find(g=>g.id===id);
-      if(!goal) return;
-      document.getElementById('goalName').value = goal.name || '';
-      document.getElementById('goalAmount').value = goal.amount || '';
-      document.getElementById('goalTarget').value = goal.target || '';
-      document.getElementById('dueValue').value = goal.due || '';
-      if(document.getElementById('goalColor')) document.getElementById('goalColor').value = goal.color || '#22c55e';
-      if(document.getElementById('goalGroup')) document.getElementById('goalGroup').value = goal.group || 'My Goals';
-      if(document.getElementById('goalAmountCurrency')) document.getElementById('goalAmountCurrency').value = goal.amountCurrency || 'EGP';
-      if(document.getElementById('goalTargetCurrency')) document.getElementById('goalTargetCurrency').value = goal.targetCurrency || goal.amountCurrency || 'EGP';
-      document.getElementById('addGoalBtn').textContent = "Update Goal";
+    function startEditGoal(id){
+      const g = goals.find(x=>x.id===id);
+      if(!g) return;
+      editingGoalId = id;
+      document.getElementById('goalName').value = g.name || '';
+      document.getElementById('goalAmount').value = g.amount || '';
+      document.getElementById('goalTarget').value = g.target || '';
+      document.getElementById('dueValue').value = g.due || '';
+      if(document.getElementById('goalColor')) document.getElementById('goalColor').value = g.color || '#22c55e';
+      if(document.getElementById('goalGroup')) document.getElementById('goalGroup').value = g.group || 'My Goals';
+      if(document.getElementById('goalAmountCurrency')) document.getElementById('goalAmountCurrency').value = g.amountCurrency || 'EGP';
+      if(document.getElementById('goalTargetCurrency')) document.getElementById('goalTargetCurrency').value = g.targetCurrency || g.amountCurrency || 'EGP';
+      document.getElementById('addGoalBtn').textContent = 'Update Goal';
     }
 
-    // Delete goal modal
     function openDeleteModal(id){
-      deletingGoal = id;
+      deletingGoalId = id;
       document.getElementById('deleteModal').classList.add('show');
       document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
     }
     function confirmDelete(){
-      goals = goals.filter(g => g.id !== deletingGoal);
+      goals = goals.filter(g => g.id !== deletingGoalId);
       localStorage.setItem('pwa-goals', JSON.stringify(goals));
-      deletingGoal = null;
+      deletingGoalId = null;
       closeModal('deleteModal');
       renderGoals();
     }
+    function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+    function clearForm(){
+      document.getElementById('goalName').value = '';
+      document.getElementById('goalAmount').value = '';
+      document.getElementById('goalTarget').value = '';
+      document.getElementById('dueValue').value = '';
+      if(document.getElementById('goalColor')) document.getElementById('goalColor').value = '#22c55e';
+      if(document.getElementById('goalGroup')) document.getElementById('goalGroup').value = '';
+      if(document.getElementById('goalAmountCurrency')) document.getElementById('goalAmountCurrency').value = 'EGP';
+      if(document.getElementById('goalTargetCurrency')) document.getElementById('goalTargetCurrency').value = 'EGP';
+    }
 
-    // Add Transaction modal: clear inputs when opening (fixes leak)
-    function addTransaction(goalId){
-      txGoal = goalId;
-      // clear inputs
+    // --- Transactions ---
+    function openTransactionModal(goalId, subtract=false){
+      txGoalId = goalId;
+      txSubtractMode = !!subtract;
+      // clear inputs each time -> prevents leak between opens
       document.getElementById('txAmount').value = '';
       document.getElementById('txCategory').value = '';
-      document.getElementById('txDate').value = ''; // user picks, or leave empty
-      // show currency hint for this goal
-      const goal = goals.find(g=>g.id===goalId);
-      const currency = goal?.amountCurrency || goal?.amountCurrency || 'EGP';
-      document.getElementById('txCurrencyHint').textContent = `Recording in ${currency}`;
-      // open modal
+      document.getElementById('txDate').value = ''; // user chooses date
+      document.getElementById('txModalTitle').textContent = subtract ? 'Subtract Transaction' : 'Add Transaction';
+      const goal = goals.find(g => g.id === goalId);
+      document.getElementById('txCurrencyHint').textContent = goal ? `Recording in ${goal.amountCurrency || goal.currency || 'EGP'}` : '';
       document.getElementById('transactionModal').classList.add('show');
 
-      // bind confirm handler (overwrite previous)
+      // bind confirm (overwrite previous)
       document.getElementById('confirmTxBtn').onclick = confirmAddTransaction;
 
-      // focus amount
-      setTimeout(()=>{ document.getElementById('txAmount').focus(); }, 120);
+      setTimeout(()=>document.getElementById('txAmount').focus(), 100);
     }
 
     function confirmAddTransaction(){
-      const amt = Number(document.getElementById('txAmount').value) || 0;
+      const raw = document.getElementById('txAmount').value;
+      const amt = Number(raw || 0);
+      if(!raw || isNaN(amt) || amt === 0){ alert('Enter a non-zero amount'); return; }
       const cat = document.getElementById('txCategory').value.trim() || 'General';
       const date = document.getElementById('txDate').value || new Date().toISOString().slice(0,10);
 
-      const goal = goals.find(g=>g.id===txGoal);
-      if(!goal){
-        closeModal('transactionModal');
-        txGoal = null;
-        return;
-      }
+      const g = goals.find(x => x.id === txGoalId);
+      if(!g){ closeModal('transactionModal'); return; }
 
-      // push transaction (do NOT change goal.amount; saved = base + sum(transactions))
-      goal.transactions = goal.transactions || [];
-      goal.transactions.push({ amount: amt, category: cat, date });
+      const value = txSubtractMode ? -Math.abs(amt) : Number(amt);
+      g.transactions = g.transactions || [];
+      g.transactions.push({ amount: value, category: cat, date });
 
-      // persist & close
+      // persist and cleanup
       localStorage.setItem('pwa-goals', JSON.stringify(goals));
-
-      // clear inputs (avoid leak)
+      // clear modal inputs to avoid leakage
       document.getElementById('txAmount').value = '';
       document.getElementById('txCategory').value = '';
       document.getElementById('txDate').value = '';
-
-      txGoal = null;
+      txGoalId = null; txSubtractMode = false;
       closeModal('transactionModal');
       renderGoals();
     }
 
-    // Delete a transaction from a goal
     function deleteTransaction(goalId, txIndex){
-      const goal = goals.find(g=>g.id===goalId);
-      if(!goal) return;
-      if(!goal.transactions || !goal.transactions[txIndex]) return;
-      // remove transaction
-      goal.transactions.splice(txIndex, 1);
+      const g = goals.find(x=>x.id===goalId);
+      if(!g || !g.transactions || !g.transactions[txIndex]) return;
+      if(!confirm('Delete this transaction?')) return;
+      g.transactions.splice(txIndex, 1);
       localStorage.setItem('pwa-goals', JSON.stringify(goals));
       renderGoals();
     }
 
-    function closeModal(id){ document.getElementById(id).classList.remove('show'); }
-
-    function clearForm(){
-      document.getElementById('goalName').value='';
-      document.getElementById('goalAmount').value='';
-      document.getElementById('goalTarget').value='';
-      document.getElementById('dueValue').value='';
-      if(document.getElementById('goalColor')) document.getElementById('goalColor').value='#22c55e';
-      if(document.getElementById('goalGroup')) document.getElementById('goalGroup').value='';
-      if(document.getElementById('goalAmountCurrency')) document.getElementById('goalAmountCurrency').value='EGP';
-      if(document.getElementById('goalTargetCurrency')) document.getElementById('goalTargetCurrency').value='EGP';
+    // --- other utilities ---
+    function toggleSummary(id){
+      const el = document.getElementById('summary-' + id);
+      if(!el) return;
+      el.style.display = el.style.display === 'block' ? 'none' : 'block';
     }
-
     function toggleTheme(){ document.body.dataset.theme = document.body.dataset.theme==='dark' ? 'light' : 'dark'; }
 
+    function toggleView(){ showPercentage = !showPercentage; renderGoals(); }
+
     function exportJSON(){
-      const blob=new Blob([JSON.stringify(goals)],{type:'application/json'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='goals.json';a.click();
+      const blob = new Blob([JSON.stringify(goals)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'goals.json'; a.click();
     }
     function importJSON(){
-      const inp=document.createElement('input');inp.type='file';inp.accept='application/json';
-      inp.onchange=e=>{const file=e.target.files[0];const r=new FileReader();r.onload=()=>{goals=JSON.parse(r.result);localStorage.setItem('pwa-goals',JSON.stringify(goals));renderGoals()};r.readAsText(file)};
+      const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+      inp.onchange = e => { const f = e.target.files[0]; const r = new FileReader(); r.onload = () => { goals = JSON.parse(r.result); localStorage.setItem('pwa-goals', JSON.stringify(goals)); renderGoals(); }; r.readAsText(f); };
       inp.click();
     }
     function exportCSV(){
-      const rows=[["Name","Saved","Target","Due","Group","AmountCurrency","TargetCurrency"]];
-      goals.forEach(g=>{const base=Number(g.amount||0);const txTotal=(g.transactions||[]).reduce((s,t)=>s+Number(t.amount||0),0);const saved=base+txTotal;rows.push([g.name,saved,g.target,g.due,g.group||'My Goals',g.amountCurrency||'EGP',g.targetCurrency||g.amountCurrency||'EGP'])});
-      const csv=rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
-      const blob=new Blob([csv],{type:'text/csv'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='goals.csv';a.click();
+      const rows = [["Name","Saved","Target","Due","Group","AmountCurrency","TargetCurrency"]];
+      goals.forEach(g=>{
+        const base = Number(g.amount||0);
+        const txTotal = (g.transactions||[]).reduce((s,t)=>s+Number(t.amount||0),0);
+        const saved = base + txTotal;
+        rows.push([g.name, saved, g.target||0, g.due||'', g.group||'My Goals', g.amountCurrency||'EGP', g.targetCurrency||g.amountCurrency||'EGP']);
+      });
+      const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'goals.csv'; a.click();
     }
 
-    // expose functions used in inline onclick attributes
-    window.saveGoal = saveGoal;
-    window.editGoal = editGoal;
-    window.openDeleteModal = openDeleteModal;
-    window.addTransaction = addTransaction;
-    window.toggleSummary = toggleSummary;
+    // Expose some handlers for inline onclick
+    window.openTransactionModal = openTransactionModal;
     window.deleteTransaction = deleteTransaction;
+    window.startEditGoal = startEditGoal;
+    window.openDeleteModal = openDeleteModal;
+    window.toggleSummary = toggleSummary;
 
-    // initial render
+    // Render initially
     renderGoals();
 
-    // Optional: register service worker (if you have sw.js deployed)
+    // Optional: register service worker (if sw.js exists)
     if('serviceWorker' in navigator){
-      window.addEventListener('load', ()=>{
-        navigator.serviceWorker?.register('sw.js').catch(()=>{/* ignore */});
-      });
+      navigator.serviceWorker.register('sw.js').catch(()=>{/* ignore */});
     }
   </script>
 </body>
